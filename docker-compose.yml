@@ -1,0 +1,28 @@
+services:
+  db:
+    image: postgres:18.3
+    container_name: task_app_postgres
+    restart: unless-stopped
+    shm_size: 128mb
+    environment:
+      POSTGRES_USER: task_app
+      POSTGRES_PASSWORD: task_app
+      POSTGRES_DB: task_db
+      # SCRAM-SHA-256 is the default for PG 14+; explicit for clarity.
+      POSTGRES_HOST_AUTH_METHOD: scram-sha-256
+      POSTGRES_INITDB_ARGS: "--data-checksums --locale-provider=icu --icu-locale=en-US"
+    ports:
+      - "5432:5432"
+    # PG 18+: mount at /var/lib/postgresql (PGDATA is /var/lib/postgresql/18/docker).
+    volumes:
+      - postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    stop_grace_period: 30s
+
+volumes:
+  postgres_data:
