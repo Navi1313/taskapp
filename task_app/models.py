@@ -10,6 +10,7 @@ class Task(models.Model):
 
     class TaskStatus(models.TextChoices):
         PENDING = "Pending", "Pending"
+        COMPLETED = "Completed", "Completed"
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     owner = models.CharField(max_length=255)
@@ -18,6 +19,7 @@ class Task(models.Model):
     status = models.CharField(max_length=20,choices=TaskStatus.choices,default=TaskStatus.PENDING)
     created_at = models.DateField(auto_now_add=True)
     due_at = models.DateField()
+    completed_at = models.DateField(null=True, blank=True)
 
     class Meta:
         ordering = ["-created_at", "id"]
@@ -29,6 +31,11 @@ class Task(models.Model):
             raise ValidationError({"due_at": "Please use valid due Date"})
 
     def save(self, *args, **kwargs):
+        if self.status == self.TaskStatus.COMPLETED:
+            if self.completed_at is None:
+                self.completed_at = timezone.localdate()
+        else:
+            self.completed_at = None
         self.full_clean()
         super().save(*args, **kwargs)
 

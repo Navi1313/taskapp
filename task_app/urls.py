@@ -17,7 +17,7 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path
 
-from .views import add_two_numbers, create_task_request, index, task_detail
+from .views import add_two_numbers, create_task_request, index, list_user_tasks, task_detail
 
 
 urlpatterns = [
@@ -25,6 +25,7 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("add/", add_two_numbers),
     path("create_task/", create_task_request),
+    path("tasks/", list_user_tasks),
     path("task/<uuid:task_id>/", task_detail),
 ]
 

@@ -16,8 +16,9 @@ class TaskSerializer(serializers.ModelSerializer):
             "status",
             "created_at",
             "due_at",
+            "completed_at",
         ]
-        read_only_fields = ["id", "status", "created_at"]
+        read_only_fields = ["id", "created_at", "completed_at"]
 
     def validate_due_at(self, value):
         reference_date = timezone.localdate()
