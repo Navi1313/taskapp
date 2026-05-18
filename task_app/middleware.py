@@ -10,14 +10,14 @@ from task_app.models import Task
 logger = logging.getLogger(__name__)
 
 TASK_ID_PATH = re.compile(
-    r"^/task/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/?$",
+    r"^/tasks?/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/?$",
     re.IGNORECASE,
 )
 
 
 class ValidateTaskIdMiddleware:
     """
-    For paths matching /task/<uuid>/, validates the UUID and ensures the task
+    For paths matching /tasks/<uuid>/ (or /task/<uuid>/), validates the UUID and ensures the task
     exists in the database. Attaches ``request.task_id`` before the view runs.
     """
 
