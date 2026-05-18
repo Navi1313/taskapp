@@ -1,7 +1,7 @@
 from django.utils import timezone
 from rest_framework import serializers
 
-from .models import Task
+from .models import Task, User
 
 
 class TaskSerializer(serializers.ModelSerializer):
@@ -32,6 +32,33 @@ class TaskSerializer(serializers.ModelSerializer):
         task = Task(**validated_data)
         task.save()
         return task
+
+    def update(self, instance, validated_data):
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+        return instance
+
+
+class UserSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = User
+        fields = [
+            "userid",
+            "firstname",
+            "lastname",
+            "dob",
+        ]
+        read_only_fields = ["userid"]
+
+    def validate_dob(self, value):
+        if value >= timezone.localdate():
+            raise serializers.ValidationError("Date of birth must be in the past")
+        return value
+
+    def create(self, validated_data):
+        return User.objects.create(**validated_data)
 
     def update(self, instance, validated_data):
         for attr, value in validated_data.items():
