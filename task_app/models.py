@@ -46,9 +46,13 @@ class User(models.Model):
     firstname = models.CharField(max_length=255)
     lastname = models.CharField(max_length=255)
     dob = models.DateField()
+    username = models.CharField(max_length=20, unique=True, null=True)
+    password = models.CharField(max_length=255, null=True)
 
     class Meta:
         ordering = ["lastname", "firstname"]
 
     def __str__(self):
         return f"{self.firstname} {self.lastname}"
+
+

@@ -2,6 +2,7 @@ from django.utils import timezone
 from rest_framework import serializers
 
 from .models import Task, User
+from .utils import BCrruptUtil
 
 
 class TaskSerializer(serializers.ModelSerializer):
@@ -49,8 +50,14 @@ class UserSerializer(serializers.ModelSerializer):
             "firstname",
             "lastname",
             "dob",
+            "username",
+            "password",
         ]
         read_only_fields = ["userid"]
+        extra_kwargs = {
+            "password": {"write_only": True, "required": True},
+            "username": {"required": True}
+        }
 
     def validate_dob(self, value):
         if value >= timezone.localdate():
@@ -58,10 +65,41 @@ class UserSerializer(serializers.ModelSerializer):
         return value
 
     def create(self, validated_data):
+        password = validated_data.get("password")
+        if password:
+            validated_data["password"] = BCrruptUtil.encrypt_password(password)
         return User.objects.create(**validated_data)
 
     def update(self, instance, validated_data):
+        password = validated_data.get("password")
+        if password:
+            validated_data["password"] = BCrruptUtil.encrypt_password(password)
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
         instance.save()
         return instance
+
+
+class LoginSerializer(serializers.Serializer):
+    username = serializers.CharField()
+    password = serializers.CharField(write_only=True)
+
+    def validate(self, attrs):
+        username = attrs.get("username")
+        password = attrs.get("password")
+
+        if not username or not password:
+            raise serializers.ValidationError("Both username and password are required.")
+
+        try:
+            user = User.objects.get(username=username)
+        except User.DoesNotExist:
+            raise serializers.ValidationError("Invalid credentials.")
+
+        if not BCrruptUtil.verify_method(password, user.password):
+            raise serializers.ValidationError("Invalid credentials.")
+
+        attrs["user"] = user
+        return attrs
+
+        

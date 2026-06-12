@@ -9,7 +9,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from .models import Task, User
-from .serialization import TaskSerializer, UserSerializer
+from .serialization import LoginSerializer, TaskSerializer, UserSerializer
 
 
 def _parse_date(value: str, param_name: str):
@@ -33,6 +33,8 @@ def index(request: Request):
                 "users_list": "GET /users/",
                 "users_create": "POST /users/",
                 "users_detail": "GET|PUT|PATCH|DELETE /users/<uuid>/",
+                "login": "POST /api/auth/login/",
+                "signup": "POST /api/auth/signup/",
                 "admin": "/admin/",
             }
         },
@@ -238,6 +240,18 @@ class TaskViewSet(viewsets.ModelViewSet):
         ).order_by("-completed_at")
         return self._paginated_list_response(owner, "completed", tasks)
 
+    @action(detail=False, methods=["GET"], url_path="in_progress")
+    def test_function(self, request):
+        try:
+            tasks = Task.objects.filter(status=Task.TaskStatus.PENDING)
+            # Select * from tasks where status = 'Pending'
+            tasks = tasks.filter(owner="Himani")
+            # SELECT * FROM tasks where status = 'Pending' AND owner = 'Himani'
+            serializer = TaskSerializer(tasks, many=True)
+            return Response(data=serializer.data, status=200)
+        except Exception as e:
+            return Response(data={"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)    
+
 
 class UserViewSet(viewsets.ModelViewSet):
     """
@@ -312,3 +326,34 @@ class UserViewSet(viewsets.ModelViewSet):
             {"message": "User deleted", "userid": deleted_id},
             status=status.HTTP_200_OK,
         )
+
+
+@api_view(["POST"])
+def login(request):
+    serializer = LoginSerializer(data=request.data)
+    if not serializer.is_valid():
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    user = serializer.validated_data["user"]
+    return Response(
+        {"message": "Login successful", "userid": str(user.pk)},
+        status=status.HTTP_200_OK,
+    )
+
+
+@api_view(["POST"])
+def signup(request):
+    serializer = UserSerializer(data=request.data)
+    if not serializer.is_valid():
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    user = serializer.save()
+    return Response(
+        {
+            "message": "User registered successfully",
+            "user": UserSerializer(user).data
+        },
+        status=status.HTTP_201_CREATED
+    )
+
+
+        

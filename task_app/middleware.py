@@ -2,11 +2,8 @@ import logging
 import re
 import time
 import uuid
-
 from django.http import JsonResponse
-
 from task_app.models import Task
-
 logger = logging.getLogger(__name__)
 
 TASK_ID_PATH = re.compile(
