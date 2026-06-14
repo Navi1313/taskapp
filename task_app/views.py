@@ -7,9 +7,9 @@ from rest_framework.decorators import action, api_view
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.request import Request
 from rest_framework.response import Response
-
+from .utils import JWTUtil
 from .models import Task, User
-from .serialization import LoginSerializer, TaskSerializer, UserSerializer
+from .serialization import LoginSerializer, TaskSerializer, UserProfileSerializer, UserSerializer
 
 
 def _parse_date(value: str, param_name: str):
@@ -35,6 +35,7 @@ def index(request: Request):
                 "users_detail": "GET|PUT|PATCH|DELETE /users/<uuid>/",
                 "login": "POST /api/auth/login/",
                 "signup": "POST /api/auth/signup/",
+                "me": "GET /api/auth/me/  (Authorization: Bearer <token>)",
                 "admin": "/admin/",
             }
         },
@@ -98,6 +99,7 @@ class TaskViewSet(viewsets.ModelViewSet):
         if owner:
             payload["owner"] = owner
         return Response(payload, status=status.HTTP_200_OK)
+
 
     def list(self, request, *args, **kwargs):
         owner = request.query_params.get("owner")
@@ -335,8 +337,14 @@ def login(request):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     user = serializer.validated_data["user"]
+    token = JWTUtil.create_token(str(user.pk))   # ← generate token
+
     return Response(
-        {"message": "Login successful", "userid": str(user.pk)},
+        {
+            "message": "Login successful",
+            "userid": str(user.pk),
+            "token": token,              # ← include in response
+        },
         status=status.HTTP_200_OK,
     )
 
@@ -356,4 +364,66 @@ def signup(request):
     )
 
 
-        
+@api_view(["GET"])
+def me(request):
+    """
+    GET /api/auth/me/
+    Returns the full profile of the currently authenticated user.
+    Requires: Authorization: Bearer <jwt-token>
+    """
+    auth_header = request.headers.get("Authorization", "")
+    if not auth_header.startswith("Bearer "):
+        return Response(
+            {"error": "Authorization header missing or invalid. Use: Bearer <token>"},
+            status=status.HTTP_401_UNAUTHORIZED,
+        )
+
+    token = auth_header.split(" ", 1)[1].strip()
+    try:
+        payload = JWTUtil.verify_token(token)
+    except Exception:
+        return Response(
+            {"error": "Invalid or expired token."},
+            status=status.HTTP_401_UNAUTHORIZED,
+        )
+
+    user_id = payload.get("sub")
+    try:
+        user = User.objects.get(pk=user_id)
+    except User.DoesNotExist:
+        return Response(
+            {"error": "User not found."},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    serializer = UserProfileSerializer(user)
+    return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+@api_view(["GET"])
+def test(request):
+    """
+    GET /test/
+    Verifies the JWT token from the Authorization header.
+    Usage:  Authorization: Bearer <token>
+    """
+    auth_header = request.headers.get("Authorization", "")
+    if not auth_header.startswith("Bearer "):
+        return Response(
+            {"error": "Authorization header missing or invalid. Use: Bearer <token>"},
+            status=status.HTTP_401_UNAUTHORIZED,
+        )
+
+    token = auth_header.split(" ", 1)[1].strip()
+    try:
+        payload = JWTUtil.verify_token(token)
+    except Exception as e:
+        return Response(
+            {"error": str(e)},
+            status=status.HTTP_401_UNAUTHORIZED,
+        )
+
+    return Response(
+        {"message": "Valid token", "payload": payload},
+        status=status.HTTP_200_OK,
+    )

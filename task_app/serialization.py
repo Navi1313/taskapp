@@ -80,6 +80,21 @@ class UserSerializer(serializers.ModelSerializer):
         return instance
 
 
+class UserProfileSerializer(serializers.ModelSerializer):
+    """Read-only serializer that exposes all user fields except password."""
+
+    class Meta:
+        model = User
+        fields = [
+            "userid",
+            "firstname",
+            "lastname",
+            "dob",
+            "username",
+        ]
+        read_only_fields = fields
+
+
 class LoginSerializer(serializers.Serializer):
     username = serializers.CharField()
     password = serializers.CharField(write_only=True)
